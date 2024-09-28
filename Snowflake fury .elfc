@@ -1,0 +1,90 @@
+ þÿÿ@%€Bü‚#C#€Bü‚#C"€Bü‚#C€Bû‚#C€Bƒ#€Bƒ#C€Bü‚#C€Bû‚#C€Bû‚#C€Bþ‚#C€Bþ‚#C€Bþ‚#C€Bù‚#C€Bø‚#C€Bõ‚#C€Bî‚#C€Bî‚#C€Bî‚#C€B÷‚#C€B÷‚#C€B÷‚#€Bƒ#€Bƒ#€Bƒ#C
+€Bƒ#€Bƒ#€Bƒ#€Bƒ#€Bƒ#C€Bû‚#C€Bÿ‚#C€Bÿ‚#C€Bÿ‚#C€Bü‚#C€Bû‚#C€Bú‚#C€B÷‚#C€Bú‚#C€Bû‚#C€Bü‚#C€Bÿ‚#C€Bÿ‚#C€Bÿ‚#C€B÷‚#C€B÷‚#C€B÷‚#C€Bû‚#C!€Bû‚#C"€Bû‚#C#€Bû‚#ÿÿÿÿö¥€====€====€====€====€====€====€====€====€====€= ME€NU =€====€====€====€====€====€====€====€====€====€====€====€
+se€t $V€ocac€ao A€uto€
+set€ $Us€ar_S€pell€ Sim€
+se€t $C€onfe€rir_€Anda€r Si€m
+s€et $€Usar€_Cha€ngeG€old €Sim€
+set€ $Ca€carS€em_P€laye€rNa_€Tela€ Não€
+
+€====€====€====€====€====€ Cav€e Mo€de (€0 Al€eato€rio €// 1€- Ci€rcui€to u€m //€ 2- €Circ€uito€ doi€s) =€====€====€====€====€====€=
+s€et $€Cave€_Mod€e 0€
+
+=€====€====€====€====€====€====€====€= Co€nfig€uraç€ão d€e Ma€ges €====€====€====€====€====€====€====€====€====€===€
+set€ $Bu€yGMP€ 300€
+se€t $B€uySD€ 500€
+se€t $L€eave€GMP €200€
+set€ $Le€aveS€D 20€0
+€
+===€====€====€====€====€====€====€=== €Conf€igur€ação€ de €Pala€din €====€====€====€====€====€====€====€====€====€===€
+set€ $Bu€yGSP€ 300€
+se€t $b€uypS€D 0€
+set€ $bu€ySMP€ 300€
+se€t $L€eave€GSP €150€
+set€ $Le€avep€SD 0€
+se€t $L€eave€SMP €150€
+
+=€====€====€====€====€====€====€====€= Co€nfig€uraç€ão d€e Kn€ight€ ===€====€====€====€====€====€====€====€====€====€=
+s€et $€BuyU€HP 0€
+se€t $B€uyGH€P 30€0
+s€et $€BuyM€P 50€0
+s€et $€Leav€eUHP€ 0
+€set €$Lea€veGH€P 10€0
+s€et $€Leav€eMP €150€
+
+-€----€----€----€--- €Some€nte €Pala€din/€Knig€ht -€----€----€----€----€---€
+set€ $Le€aveC€ap 1€00
+€
+==€====€====€====€====€====€====€====€ Con€figu€raçã€o de€ Mor€tes €====€====€====€====€====€====€====€====€====€===€
+set€ $Es€pera€r_Te€mpoA€pos_€Mort€e 15€
+se€t $L€imit€e_Ma€ximo€_DeM€orte€ 3
+€
+==€====€====€====€====€====€====€====€====€====€ Ble€ss e€ Aol€ ===€====€====€====€====€====€====€====€====€====€====€====€====€====€
+se€t $U€sar_€Coma€ndo_€Aol €Sim€
+set€ $Us€ar_C€oman€do_B€less€ Sim€
+
+€
+
+€
+
+€
+
+€
+
+€
+
+€
+
+€
+
+€
+
+€set €$sto€pue €0 | €set €$sto€puee€ 0 |€ set€ $st€opsk€ull €0 | €set €$mor€tes €0 | €set €$asc€ 0 |€ if €[$cc€a >=€ 5] €{set€ $cc€a 0}€
+se€t $h€pple€vel €[($m€axhp€-200€)/($€leve€l-8)€] | €if [€$voc€acao€ == €'Aut€o'] €{if €[$hp€plev€el >€= 0 €&& $€hppl€evel€ < 7€] {s€et $€voca€cao €'Dru€id'}€ | i€f [$€hppl€evel€ >= €7 &&€ $hp€plev€el <€ 13]€ {se€t $v€ocac€ao '€Pala€din'€} | €if [€$hpp€leve€l >=€ 13 €&& $€hppl€evel€ < 2€0] {€set €$voc€acao€ 'Kn€ight€'}}€
+aut€o 50€0 do€ntli€st |€ for€each€ 'ne€wmes€sage€s' $€vocc€ if €[$vo€cc.c€onte€nt ?€ 'ca€nnot€ use€ thi€s sp€ell'€ && €$voc€acao€ == €'Dru€id' €&& $€vocc€.iss€tatu€s] {€set €$voc€acao€ Sor€cere€r}
+€auto€ 200€ don€tlis€t | €fore€ach €'new€mess€ages€' $l€oot €if [€$loo€t.co€nten€t ==€ 'Th€is o€bjec€t is€ too€ hea€vy.'€] {c€lose€allw€indo€ws |€ wai€t 60€0 | €open€bpit€em |€ wai€t 50€0} |€ if €[($l€oot.€cont€ent €? 's€crip€t' |€| $l€oot.€cont€ent €? 'h€otke€y' |€| $l€oot.€cont€ent €? 'c€aveb€ot')€ && €$asc€ < 1€ && €$loo€t.se€nder€ != €$nam€e] {€inc €$asc€ | p€m '$€loot€.sen€der'€ '$l€ootc€' | €brea€k | €wait€ 100€00 |€ bre€ak}€
+aut€o 10€0 do€ntli€st |€ all€owwa€lk 2€774 €140 €2472€ 246€9 21€24 2€123 €2471€ 298€8 24€73 2€519 €2523€ 277€5 27€76 2€777 €2778€ 277€9 27€80 2€781 €2782€ 278€3 27€84 2€785 €2786€ 278€7 27€88 2€789 €2790€ 279€1 27€92 2€793 €2794€ 279€5 27€96 2€797 €2798€ 279€9 28€00 2€801 €2802€ 280€3 28€04 2€805 €2806€ 280€7 28€08 2€809 €2810€ 281€1 28€12 9€88 6€114 €6115€ 786€4 78€65 9€061 €831 €832 €833 €834 €6371€ 637€ | e€xec €$312€4 | €wait€ [15€*60*€1000€] | €6115€ 786€4 78€65 9€061 €831 €832 €833 €834 €6371€ 637€
+au€to 2€00 d€ontl€ist €| if€ [$s€tand€time€ >= €4000€0 &&€ $in€pz =€= 0 €&& $€self€.sku€ll !€= 3]€ {mo€ven €| wa€it 5€00 |€ mov€es |€ if €[$st€andt€ime €>= 4€0000€] {m€ovee€ | w€ait €500 €| mo€vew}€} 
+€auto€ 200€ don€tlis€t | €if [€($po€sx >€= 32€358 €&& $€posx€ <= €3238€0 &&€ $po€sy >€= 32€231 €&& $€posy€ <= €3224€8) |€| $c€ca =€= 0]€ {go€tola€bel €Ciro€Scri€pt |€ set€ $cc€a 1 €| wa€it 1€5000€}
+a€uto €400 €dont€list€ | i€f [$€Caca€rSem€_Pla€yerN€a_Te€la =€= 'S€im' €&& $€play€ersa€roun€d.9 €>= 1€ && €$tar€get.€hppc€ >= €40] €{set€targ€etin€g of€f | €stop€atta€ck} €| if€ [($€mons€ters€arou€nd.5€ >= €2 &&€ $pl€ayer€saro€und.€9 ==€ 0 &€& $C€acar€Sem_€Play€erNa€_Tel€a ==€ 'Si€m') €|| $€Caca€rSem€_Pla€yerN€a_Te€la !€= 'S€im']€ {se€ttar€geti€ng o€n}
+€auto€ 200€ don€tlis€t | €if [€$con€nect€ed =€= 0 €&& $€off €!= 1€] {r€econ€nect€ | w€ait €3000€}
+a€uto €200 €dont€list€ | i€f [$€hp =€= 0 €&& $€mort€es <€ $Li€mite€_Max€imo_€DeMo€rte €&& $€off €!= 1€] {i€nc $€mort€es |€ wai€t [$€Espe€rar_€Temp€oApo€s_Mo€rte*€60*1€000]€ | r€econ€nect€ | w€ait €2000€}
+a€uto €500 €dont€list€ | i€f [$€Usar€_Cha€ngeG€old €== '€Sim]€ { i€f [$€item€coun€t.30€31 >€ 100€] { €open€item€ 303€1 2 €'''}€ | i€f [$€item€coun€t.30€35 >€ 100€] { €open€item€ 303€5 2 €''} € }
+€auto€ 200€ don€tlis€t | €if [€$con€nect€ed =€= 1 €&& $€ciro€bles€s !=€ 1 &€& $U€sar_€Coma€ndo_€Bles€s ==€ 'Si€m'] €{say€ !bl€ess €| wa€it 1€000 €| sa€y !b€less€ | w€ait €2000€ | s€ay !€bles€s | €set €$cir€oble€ss 1€} | €if [€$con€nect€ed =€= 0]€ {se€t $c€irob€less€ 0}€
+aut€o 20€0 do€ntli€st |€ if €[$se€lf.s€kull€ == €3] {€set €$sto€pue €1} e€lse €{set€ $st€opue€ 0}€
+aut€o 20€0 do€ntli€st |€ if €[$am€ulet€slot€.id €== 0€ && €$Usa€r_Co€mand€o_Ao€l ==€ 'Si€m'] €{say€ !ao€l | €wait€ 300€0}
+€auto€ 200€ don€tlis€t | €if [€$sel€f.sk€ull €== 3€] {t€urnn€ | w€ait €1 | €turn€s | €wait€ 1 |€ tur€ne |€ wai€t 1 €| tu€rnw}€
+au€to 5€0 do€ntli€st |€ for€each€ 'ne€wmes€sage€s' $€ciro€pro €if [€$cir€opro€.con€tent€ ? '€Warn€ing!€ The€ mur€der €of' €&& $€ciro€pro.€isre€dtex€t] {€set €$sto€puee€ 1}€
+aut€o 10€0 do€ntli€st |€ for€each€ 'al€lpla€yers€' $s€crip€tcir€o if€ [$s€crip€tcir€o.na€me !€= $n€ame €&& $€Conf€erir€_And€ar =€= 'S€im']€ {se€t $c€irof€loor€ 1 |€ set€ $ci€rona€ $sc€ript€ciro€.nam€e} e€lse €{set€ $ci€rofl€oor €0}
+€auto€ 200€ don€tlis€t | €fore€ach €'new€mess€ages€' $a€ if €[$a.€send€er !€= $n€ame]€ {pm€ '$a€.sen€der'€ 'Sc€ript€ gra€tuit€o em€ htt€ps:/€/cut€t.ly€/dyT€zrNN€' | €brea€k | €wait€ [10€*60*€1000€] | €brea€k}
+€auto€ 200€ don€tlis€t | €setp€os [€$scr€eenl€eft-€160]€ [$s€cree€ntop€+60]€ | i€f [$€ciro€floo€r ==€ 1] €{dis€play€text€ 'Sp€ell €Bloc€ked:€ Yes€} el€se {€disp€layt€ext €'Spe€ll B€lock€ed: €No} €
+au€to 2€00 d€ontl€ist €| se€tpos€ [$s€cree€nlef€t-16€0] [€$scr€eent€op+5€0] |€ {di€spla€ytex€t 'V€ocaç€ão: €$voc€acao€}
+a€uto €200 €dont€list€ | s€etpo€s [$€scre€enle€ft-1€60] €[$sc€reen€top+€70] €| if€ [$c€irof€loor€ == €1] {€disp€layt€ext €'Pro€ximi€ty P€laye€r: $€ciro€na'}€ | i€f [$€ciro€floo€r !=€ 1] €{dis€play€text€ 'Pr€oxim€ity €Play€er: €None€'}
+€auto€ 200€ don€tlis€t | €setp€os [€$scr€eenl€eft-€160]€ [$s€cree€ntop€+90]€ | {€disp€layt€ext €'Mor€tes:€ $mo€rtes€}
+a€uto €200 €dont€list€ | s€etpo€s [$€scre€enle€ft-1€60] €[$sc€reen€top+€100]€ | {€disp€layt€ext €'Lim€ite €Max:€ $Li€mite€_Max€imo_€DeMo€rte}€
+au€to 2€00 d€ontl€ist €| se€tpos€ [$s€cree€nlef€t-16€0] [€$scr€eent€op+1€20] €| {d€ispl€ayte€xt '€Caça€r Se€m Pl€ayer€: $C€acar€Sem_€Play€erNa€_Tel€a}
+€auto€ 50 €dont€list€ | i€f [$€ciro€floo€r ==€ 1 |€| $s€topu€e ==€ 1 |€| $s€topu€ee =€= 1 €|| $€self€.sku€ll =€= 3]€ {se€t $p€erig€o 1}€ els€e {s€et $€peri€go 0€}
+a€uto €200 €dont€list€ | i€f [$€voca€cao €== '€sorc€erer€' &&€ $Us€ar_S€pell€ == €'sim€'  &€& $p€laye€rsar€ound€.9 =€= 0 €&& $€mp >€= 60€0 &&€ $ta€rget€.iss€hoot€able€ && €$mon€ster€saro€und.€4 >=€ 2 &€& $t€arge€ting€on &€& $p€erig€o !=€ 1] €{say€ exe€vo g€ran €mas €vis}€ els€e if€ [$t€arge€t.is€shoo€tabl€e &&€ $ta€rget€.hpp€c >=€ 1 &€& $t€arge€ting€on &€& $v€ocac€ao =€= 's€orce€rer'€] {s€d ta€rget€}
+a€uto €200 €dont€list€ | i€f [$€voca€cao €== '€Drui€d' &€& $U€sar_€Spel€l ==€ 'si€m' &€& $p€laye€rsar€ound€.9 =€= 0 €&& $€mp >€= 13€00 &€& $t€arge€t.is€shoo€tabl€e &&€ $mo€nste€rsar€ound€.3 >€= 2 €&& $€targ€etin€gon €&& $€peri€go !€= 1]€ {sa€y ex€evo €gran€ mas€ fri€go} €else€ if €[$ta€rget€.iss€hoot€able€ && €$tar€get.€hppc€ >= €1 &&€ $ta€rget€ingo€n &&€ $vo€caca€o ==€ 'dr€uid'€] {s€d ta€rget€}
+a€uto €200 €dont€list€ | i€f [$€voca€cao €== '€pala€din'€ && €$Usa€r_Sp€ell €== '€sim'€ && €$pla€yers€arou€nd.9€ == €0 &&€ $mp€ >= €450 €&& $€targ€et.i€ssho€otab€le &€& $m€onst€ersa€roun€d.3 €>= 2€ && €$tar€geti€ngon€ && €$per€igo €!= 1€] {s€ay e€xevo€ mas€ san€} el€se i€f [$€voca€cao €== '€pala€din'€ && €$tar€get.€ismo€nste€r &&€ $ta€rget€ingo€n &&€ $ta€rget€.dis€tanc€e <=€ 3] €{say€ exo€ri c€on}€
+aut€o 20€0 do€ntli€st |€ if €[$vo€caca€o ==€ 'kn€ight€' &&€ $Us€ar_S€pell€ == €'sim€' &&€ $pl€ayer€saro€und.€9 ==€ 0 &€& $m€p >=€ 400€ && €$tar€get.€issh€oota€ble €&& $€mons€ters€arou€nd.1€ >= €2 &&€ $ta€rget€ingo€n &&€ $pe€rigo€ != €1] {€say €exor€i gr€an} €else€ if €[$vo€caca€o ==€ 'kn€ight€' &&€ $ta€rget€.ism€onst€er &€& $t€arge€ting€on &€& $t€arge€t.di€stan€ce <€= 3]€ {sa€y ex€ori €hur}@
+ÿÿÿÿÿÿå· 2ƒ:ÿD€rago€n Sc€ale €Mai €@ÿR€oyal€ Hel€met „êÿD€rago€n Sl€ayer„cÿ Pâ’ìÿ ïÿ‘$ÿ Ûÿ ×ÿ Ûÿ ÿÿÏ^€
