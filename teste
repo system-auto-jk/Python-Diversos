@@ -1,0 +1,508 @@
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
+
+// Configurações centralizadas
+const config = {
+    adminNumero: "557182547726@c.us",
+    numeroPrincipal: "557182547726",
+    contatoAtendente: "557182547726",
+    notificacaoSecundaria: "557192577023",
+    menuPrincipal: `📋 *Bem-vindo ao Menu Principal!* 😊\n` +
+                   `1️⃣ - Quais serviços vocês oferecem?\n` +
+                   `2️⃣ - Quais são as formas de pagamento?\n` +
+                   `3️⃣ - Cardápio Digital Grátis\n` +
+                   `4️⃣ - Falar com um atendente\n\n` +
+                   `💬 Digite o número da opção desejada (ex.: 1, 2, 3, 4) ou *menu* para voltar.`,
+    respostas: {
+        "1": `📌 *Nossos Serviços:* ✨\n- Desenvolvimento de Sites\n- Gestão de Redes Sociais\n- Tráfego Pago (Facebook e Google Ads)\n- Automação de Processos\n\n🔙 Digite *voltar* para o menu principal.`,
+        "2": `💳 *Formas de Pagamento:* 💸\n- Pix\n- Cartão de Crédito (via link de pagamento)\n- Transferência Bancária\n\n🔙 Digite *voltar* para o menu principal.`,
+        "4": `👨‍💼 *Falar com um atendente:* ⏳\nAguarde um momento, estamos encaminhando sua solicitação para um de nossos atendentes.\nPor favor, escreva qual é o seu interesse para agilizarmos o atendimento.\n\nDigite *Finalizar atendimento* quando quiser voltar ao atendimento automático.`
+    },
+    timeoutAtendimento: 30 * 60 * 1000 // 30 minutos em milissegundos
+};
+
+// Configura o banco de dados SQLite
+const db = new sqlite3.Database('./usuarios.db', (err) => {
+    if (err) {
+        console.error('❌ Erro ao conectar ao banco de dados:', err.message);
+        process.exit(1); // Encerra o processo se o banco não conectar
+    } else {
+        console.log('✅ Banco de dados conectado com sucesso');
+    }
+});
+
+// Cria as tabelas e realiza migrações com logs detalhados
+db.serialize(() => {
+    console.log('🔄 Iniciando criação de tabelas...');
+    
+    // Tabela usuarios_atendidos
+    db.run("CREATE TABLE IF NOT EXISTS usuarios_atendidos (chat_id TEXT UNIQUE, timestamp INTEGER)", (err) => {
+        if (err) {
+            console.error('❌ Erro ao criar tabela usuarios_atendidos:', err.message);
+        } else {
+            console.log('✅ Tabela usuarios_atendidos criada ou já existe');
+        }
+    });
+    
+    // Tabela usuarios_saudados
+    db.run("CREATE TABLE IF NOT EXISTS usuarios_saudados (chat_id TEXT UNIQUE)", (err) => {
+        if (err) {
+            console.error('❌ Erro ao criar tabela usuarios_saudados:', err.message);
+        } else {
+            console.log('✅ Tabela usuarios_saudados criada ou já existe');
+        }
+    });
+    
+    // Tabela cadastro_em_andamento
+    db.run("CREATE TABLE IF NOT EXISTS cadastro_em_andamento (chat_id TEXT UNIQUE, etapa TEXT, nome TEXT, numero TEXT, restaurante TEXT, chat_id_original TEXT)", (err) => {
+        if (err) {
+            console.error('❌ Erro ao criar tabela cadastro_em_andamento:', err.message);
+        } else {
+            console.log('✅ Tabela cadastro_em_andamento criada ou já existe');
+        }
+    });
+    
+    // Tabela cadastros (para armazenamento permanente)
+    db.run("CREATE TABLE IF NOT EXISTS cadastros (id INTEGER PRIMARY KEY AUTOINCREMENT, nome TEXT, numero TEXT, restaurante TEXT, chat_id_original TEXT, timestamp INTEGER)", (err) => {
+        if (err) {
+            console.error('❌ Erro ao criar tabela cadastros:', err.message);
+        } else {
+            console.log('✅ Tabela cadastros criada ou já existe');
+        }
+    });
+    
+    // Migração para adicionar timestamp se necessário
+    db.run("ALTER TABLE usuarios_atendidos ADD COLUMN timestamp INTEGER", (err) => {
+        if (err && err.code !== 'SQLITE_ERROR') {
+            console.error('❌ Erro ao adicionar coluna timestamp em usuarios_atendidos:', err.message);
+        } else if (!err) {
+            console.log('✅ Coluna timestamp adicionada em usuarios_atendidos ou já existe');
+        }
+    });
+    
+    // Migração para adicionar chat_id_original se necessário
+    db.run("ALTER TABLE cadastro_em_andamento ADD COLUMN chat_id_original TEXT", (err) => {
+        if (err && err.code !== 'SQLITE_ERROR') {
+            console.error('❌ Erro ao adicionar coluna chat_id_original em cadastro_em_andamento:', err.message);
+        } else if (!err) {
+            console.log('✅ Coluna chat_id_original adicionada em cadastro_em_andamento ou já existe');
+        }
+    });
+    
+    console.log('🔄 Criação de tabelas e migrações concluídas');
+});
+
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: { headless: true }
+});
+
+client.on('qr', qr => {
+    console.log('📲 Escaneie o QR Code abaixo para conectar o bot:');
+    qrcode.generate(qr, { small: true });
+});
+
+client.on('ready', () => {
+    console.log('✅ Bot conectado e pronto para uso!');
+});
+
+// Função para logar mensagens no arquivo de texto
+function logMessage(chatId, message) {
+    const logEntry = `Chat ID: ${chatId} - Mensagem: ${message} - ${new Date().toISOString()}\n`;
+    try {
+        fs.appendFileSync('log.txt', logEntry);
+    } catch (err) {
+        console.error('❌ Erro ao gravar no arquivo de log:', err.message);
+    }
+}
+
+// Função para verificar se o usuário foi atendido
+function isUserAtendido(chatId) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT timestamp FROM usuarios_atendidos WHERE chat_id = ?", [chatId], (err, row) => {
+            if (err) {
+                console.error('❌ Erro ao verificar atendimento:', err.message);
+                return resolve(false);
+            }
+            if (!row || !row.timestamp) return resolve(false);
+
+            // Verifica timeout de 30 minutos
+            const now = Date.now();
+            if (now - row.timestamp > config.timeoutAtendimento) {
+                db.run("DELETE FROM usuarios_atendidos WHERE chat_id = ?", [chatId], (err) => {
+                    if (err) console.error('❌ Erro ao remover atendimento expirado:', err.message);
+                });
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        });
+    });
+}
+
+// Função para verificar se o usuário foi saudado
+function isUserSaudado(chatId) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT 1 FROM usuarios_saudados WHERE chat_id = ?", [chatId], (err, row) => {
+            if (err) {
+                console.error('❌ Erro ao verificar saudação:', err.message);
+                return resolve(false);
+            }
+            resolve(row ? true : false);
+        });
+    });
+}
+
+// Função para adicionar um usuário na lista de atendidos
+function addUserAtendido(chatId) {
+    return new Promise((resolve, reject) => {
+        const timestamp = Date.now();
+        db.run("INSERT OR REPLACE INTO usuarios_atendidos (chat_id, timestamp) VALUES (?, ?)", [chatId, timestamp], (err) => {
+            if (err) {
+                console.error('❌ Erro ao adicionar usuário atendido:', err.message);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Função para adicionar um usuário na lista de saudados
+function addUserSaudado(chatId) {
+    return new Promise((resolve, reject) => {
+        db.run("INSERT OR IGNORE INTO usuarios_saudados (chat_id) VALUES (?)", [chatId], (err) => {
+            if (err) {
+                console.error('❌ Erro ao adicionar usuário saudado:', err.message);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Função para verificar o estado do cadastro
+function getCadastroEstado(chatId) {
+    return new Promise((resolve, reject) => {
+        db.get("SELECT etapa, nome, numero, restaurante, chat_id_original FROM cadastro_em_andamento WHERE chat_id = ?", [chatId], (err, row) => {
+            if (err) {
+                console.error('❌ Erro ao verificar estado do cadastro:', err.message);
+                resolve({ etapa: null, chat_id_original: chatId });
+            } else {
+                if (row && !row.chat_id_original) {
+                    row.chat_id_original = chatId;
+                }
+                resolve(row || { etapa: null, chat_id_original: chatId });
+            }
+        });
+    });
+}
+
+// Função para atualizar o estado do cadastro
+function atualizarCadastroEstado(chatId, etapa, dados = {}) {
+    return new Promise((resolve, reject) => {
+        const { nome, numero, restaurante, chat_id_original } = dados;
+        db.run(
+            "INSERT OR REPLACE INTO cadastro_em_andamento (chat_id, etapa, nome, numero, restaurante, chat_id_original) VALUES (?, ?, ?, ?, ?, ?)",
+            [chatId, etapa, nome || null, numero || null, restaurante || null, chat_id_original || chatId],
+            (err) => {
+                if (err) {
+                    console.error('❌ Erro ao atualizar estado do cadastro:', err.message);
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            }
+        );
+    });
+}
+
+// Função para finalizar o cadastro
+function finalizarCadastro(chatId) {
+    return new Promise((resolve, reject) => {
+        db.run("DELETE FROM cadastro_em_andamento WHERE chat_id = ?", [chatId], (err) => {
+            if (err) {
+                console.error('❌ Erro ao finalizar cadastro:', err.message);
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+// Função para salvar o cadastro permanentemente
+function salvarCadastroPermanente(dados) {
+    return new Promise((resolve, reject) => {
+        const { nome, numero, restaurante, chat_id_original } = dados;
+        const timestamp = Date.now();
+        db.run(
+            "INSERT INTO cadastros (nome, numero, restaurante, chat_id_original, timestamp) VALUES (?, ?, ?, ?, ?)",
+            [nome, numero, restaurante, chat_id_original, timestamp],
+            (err) => {
+                if (err) {
+                    console.error('❌ Erro ao salvar cadastro permanente:', err.message);
+                    reject(err);
+                } else {
+                    console.log('✅ Cadastro salvo com sucesso na tabela cadastros');
+                    resolve();
+                }
+            }
+        );
+    });
+}
+
+// Função para validar número de WhatsApp
+function validarNumero(numero) {
+    numero = numero.replace(/\D/g, '');
+    if (numero.length >= 10 && numero.length <= 11) {
+        return '55' + numero + '@c.us';
+    }
+    return null;
+}
+
+client.on('message', async message => {
+    const chatId = message.from;
+    const mensagem = message.body.trim().toLowerCase().replace(/[^a-z0-9ç]/g, '');
+    const mensagemOriginal = message.body.trim();
+
+    logMessage(chatId, message.body);
+
+    try {
+        if (!await isUserSaudado(chatId)) {
+            const contact = await client.getContactById(chatId);
+            const userName = contact.pushname || "usuário";
+            
+            await addUserSaudado(chatId);
+            await client.sendMessage(chatId, `👋 Olá, ${userName}! Bem-vindo(a)! Como posso te ajudar? 😊\n\n${config.menuPrincipal}`);
+            
+            const notificationMessage = `📩 Novo contato recebido:\n\nNome: ${userName}\nNúmero: wa.me/${chatId.slice(0, -5)}`;
+            try {
+                await client.sendMessage(config.numeroPrincipal + "@c.us", notificationMessage);
+                await client.sendMessage(config.notificacaoSecundaria + "@c.us", notificationMessage);
+            } catch (err) {
+                console.error('❌ Erro ao enviar notificação:', err.message);
+            }
+            return;
+        }
+
+        if (mensagem === "reset") {
+            if (chatId === config.adminNumero) {
+                db.run("DELETE FROM usuarios_atendidos");
+                db.run("DELETE FROM usuarios_saudados");
+                db.run("DELETE FROM cadastro_em_andamento");
+                db.run("DELETE FROM cadastros");
+                await client.sendMessage(chatId, "🔄 O sistema foi resetado. Todos os atendimentos e cadastros reiniciarão.");
+            } else {
+                await client.sendMessage(chatId, "⛔ Comando restrito! Você não tem permissão para resetar o sistema.");
+            }
+            return;
+        }
+
+        // Comando para listar cadastros (somente para o número autorizado)
+        if (mensagem === "listarcadastros") {
+            if (chatId === config.adminNumero) {
+                db.all("SELECT id, nome, numero, restaurante, chat_id_original, timestamp FROM cadastros ORDER BY timestamp DESC", [], (err, rows) => {
+                    if (err) {
+                        console.error('❌ Erro ao listar cadastros:', err.message);
+                        client.sendMessage(chatId, "⚠️ Erro ao consultar cadastros. Tente novamente mais tarde.");
+                        return;
+                    }
+                    if (rows.length === 0) {
+                        client.sendMessage(chatId, "📋 *Lista de Cadastros*\n\nNenhum cadastro encontrado.");
+                        return;
+                    }
+                    let resposta = "📋 *Lista de Cadastros*\n\n";
+                    rows.forEach((row, index) => {
+                        const data = new Date(row.timestamp).toLocaleString('pt-BR');
+                        resposta += `${index + 1}. Nome: ${row.nome}\n` +
+                                    `   Número: wa.me/${row.numero.slice(2, -5)}\n` +
+                                    `   Restaurante: ${row.restaurante}\n` +
+                                    `   Contato: wa.me/${row.chat_id_original.slice(2, -5)}\n` +
+                                    `   Data: ${data}\n\n`;
+                    });
+                    client.sendMessage(chatId, resposta);
+                });
+            } else {
+                await client.sendMessage(chatId, "⛔ Comando restrito! Você não tem permissão para listar cadastros.");
+            }
+            return;
+        }
+
+        if (mensagem === "finalizaratendimento") {
+            const isAtendido = await isUserAtendido(chatId);
+            if (isAtendido) {
+                db.run("DELETE FROM usuarios_atendidos WHERE chat_id = ?", [chatId], (err) => {
+                    if (err) console.error('❌ Erro ao finalizar atendimento:', err.message);
+                });
+                await client.sendMessage(chatId, `✅ Atendimento finalizado.\n\n${config.menuPrincipal}`);
+            } else {
+                await client.sendMessage(chatId, "❌ Você não está em atendimento. Digite *menu* para ver as opções.");
+            }
+            return;
+        }
+
+        const cadastro = await getCadastroEstado(chatId);
+        if (cadastro.etapa) {
+            if (mensagem === "menu") {
+                await finalizarCadastro(chatId);
+                await client.sendMessage(chatId, `🔄 Voltando ao menu principal...\n\n${config.menuPrincipal}`);
+                return;
+            }
+
+            if (mensagem === "recomecar" || mensagem === "recomeçar") {
+                await atualizarCadastroEstado(chatId, 'nome', { chat_id_original: chatId });
+                await client.sendMessage(chatId, "🔄 Cadastro reiniciado. Por favor, informe seu nome completo.");
+                return;
+            }
+
+            if (cadastro.etapa === 'nome') {
+                if (mensagemOriginal.length < 2) {
+                    await client.sendMessage(chatId, "❌ Por favor, informe um nome válido (mínimo 2 caracteres). \n\nDigite *menu* para voltar ao menu principal.");
+                    return;
+                }
+                await atualizarCadastroEstado(chatId, 'confirmar_nome', { nome: mensagemOriginal, chat_id_original: chatId });
+                await client.sendMessage(chatId, `✅ Nome informado: *${mensagemOriginal}*\nEstá correto? Digite *sim* para continuar, envie outro nome ou *menu* para voltar ao menu principal.`);
+                return;
+            } 
+            else if (cadastro.etapa === 'confirmar_nome') {
+                if (mensagem === 'sim') {
+                    await atualizarCadastroEstado(chatId, 'numero', { nome: cadastro.nome, chat_id_original: chatId });
+                    await client.sendMessage(chatId, `📱 Qual número você deseja usar para o cadastro? Digite *sim* para usar o número atual (${chatId.slice(2, -5)}) ou informe outro número (ex.: 11999999999). \n\nDigite *menu* para voltar ao menu principal.`);
+                } else {
+                    if (mensagemOriginal.length < 2) {
+                        await client.sendMessage(chatId, "❌ Por favor, informe um nome válido (mínimo 2 caracteres). \n\nDigite *menu* para voltar ao menu principal.");
+                        return;
+                    }
+                    await atualizarCadastroEstado(chatId, 'confirmar_nome', { nome: mensagemOriginal, chat_id_original: chatId });
+                    await client.sendMessage(chatId, `✅ Nome atualizado: *${mensagemOriginal}*\nEstá correto? Digite *sim* para continuar, envie outro nome ou *menu* para voltar ao menu principal.`);
+                }
+                return;
+            } 
+            else if (cadastro.etapa === 'numero') {
+                let numero;
+                if (mensagem === 'sim') {
+                    numero = chatId;
+                } else {
+                    numero = validarNumero(mensagemOriginal);
+                    if (!numero) {
+                        await client.sendMessage(chatId, "❌ Número inválido. Informe um número no formato 11999999999 ou digite *sim* para usar o número atual. \n\nDigite *menu* para voltar ao menu principal.");
+                        return;
+                    }
+                }
+                await atualizarCadastroEstado(chatId, 'restaurante', { nome: cadastro.nome, numero, chat_id_original: chatId });
+                await client.sendMessage(chatId, "🍽️ Qual é o nome do seu restaurante? \n\nDigite *menu* para voltar ao menu principal.");
+                return;
+            } 
+            else if (cadastro.etapa === 'restaurante') {
+                if (mensagemOriginal.length < 3) {
+                    await client.sendMessage(chatId, "❌ Por favor, informe um nome válido para o restaurante (mínimo 3 caracteres). \n\nDigite *menu* para voltar ao menu principal.");
+                    return;
+                }
+                await atualizarCadastroEstado(chatId, 'confirmar_restaurante', { nome: cadastro.nome, numero: cadastro.numero, restaurante: mensagemOriginal, chat_id_original: chatId });
+                await client.sendMessage(chatId, `✅ Restaurante informado: *${mensagemOriginal}*\nEstá correto? Digite *sim* para continuar, envie outro nome ou *menu* para voltar ao menu principal.`);
+                return;
+            } 
+            else if (cadastro.etapa === 'confirmar_restaurante') {
+                if (mensagem === 'sim') {
+                    const dadosCadastro = {
+                        nome: cadastro.nome,
+                        numero: cadastro.numero,
+                        restaurante: cadastro.restaurante,
+                        chat_id_original: cadastro.chat_id_original
+                    };
+                    await client.sendMessage(chatId, 
+                        `📋 *Resumo do Cadastro*\n\n` +
+                        `Nome: ${dadosCadastro.nome}\n` +
+                        `Número Cadastrado: wa.me/${dadosCadastro.numero.slice(2, -5)}\n` +
+                        `Restaurante: ${dadosCadastro.restaurante}\n\n` +
+                        `✅ Tudo correto? Digite *sim* para finalizar, *recomeçar* para reiniciar o cadastro ou *menu* para voltar ao menu principal.`
+                    );
+                    await atualizarCadastroEstado(chatId, 'checkin', dadosCadastro);
+                } else {
+                    if (mensagemOriginal.length < 3) {
+                        await client.sendMessage(chatId, "❌ Por favor, informe um nome válido para o restaurante (mínimo 3 caracteres). \n\nDigite *menu* para voltar ao menu principal.");
+                        return;
+                    }
+                    await atualizarCadastroEstado(chatId, 'confirmar_restaurante', { nome: cadastro.nome, numero: cadastro.numero, restaurante: mensagemOriginal, chat_id_original: chatId });
+                    await client.sendMessage(chatId, `✅ Restaurante atualizado: *${mensagemOriginal}*\nEstá correto? Digite *sim* para continuar, envie outro nome ou *menu* para voltar ao menu principal.`);
+                }
+                return;
+            } 
+            else if (cadastro.etapa === 'checkin') {
+                if (mensagem === 'sim') {
+                    const dadosCadastro = {
+                        nome: cadastro.nome,
+                        numero: cadastro.numero,
+                        restaurante: cadastro.restaurante,
+                        chat_id_original: cadastro.chat_id_original
+                    };
+                    await salvarCadastroPermanente(dadosCadastro);
+                    const mensagemAdmin = `📋 *Novo Cadastro para Cardápio Online*\n\n` +
+                                         `Nome: ${dadosCadastro.nome}\n` +
+                                         `Número Cadastrado: wa.me/${dadosCadastro.numero.slice(2, -5)}\n` +
+                                         `Restaurante: ${dadosCadastro.restaurante}\n` +
+                                         `Número do Contato: wa.me/${dadosCadastro.chat_id_original.slice(2, -5)}`;
+                    try {
+                        await client.sendMessage(config.adminNumero, mensagemAdmin);
+                    } catch (err) {
+                        console.error('❌ Erro ao enviar notificação de cadastro ao administrador:', err.message);
+                    }
+                    await finalizarCadastro(chatId);
+                    await client.sendMessage(chatId, `✅ Cadastro concluído com sucesso! Em breve, entraremos em contato para configurar seu cardápio online.\n\n${config.menuPrincipal}`);
+                } else if (mensagem === 'recomecar' || mensagem === 'recomeçar') {
+                    await atualizarCadastroEstado(chatId, 'nome', { chat_id_original: chatId });
+                    await client.sendMessage(chatId, "🔄 Cadastro reiniciado. Por favor, informe seu nome completo.");
+                } else {
+                    await client.sendMessage(chatId, `❌ Por favor, digite *sim* para confirmar o cadastro, *recomeçar* para reiniciar ou *menu* para voltar ao menu principal.`);
+                }
+                return;
+            }
+        }
+
+        if (await isUserAtendido(chatId)) {
+            return;
+        }
+
+        if (mensagem === "menu") {
+            await client.sendMessage(chatId, `🔄 Voltando ao menu principal...\n\n${config.menuPrincipal}`);
+            return;
+        }
+
+        if (mensagem === "voltar") {
+            await client.sendMessage(chatId, `⬅️ Voltando ao menu principal...\n\n${config.menuPrincipal}`);
+            return;
+        }
+
+        if (mensagem === "3") {
+            await atualizarCadastroEstado(chatId, 'nome', { chat_id_original: chatId });
+            await client.sendMessage(chatId, "📝 Para começar, por favor, informe seu nome completo. \n\nDigite *menu* para voltar ao menu principal.");
+            return;
+        }
+
+        if (mensagem === "4") {
+            await addUserAtendido(chatId);
+            await client.sendMessage(chatId, config.respostas["4"].replace("${this.contatoAtendente}", config.contatoAtendente));
+            return;
+        }
+
+        const opcao = mensagem === "um" ? "1" : mensagem;
+        if (config.respostas[opcao]) {
+            await client.sendMessage(chatId, config.respostas[opcao]);
+        } else {
+            await client.sendMessage(chatId, 
+                `❌ *Opção inválida.*\n` +
+                `Digite *1*, *2*, *3* ou *4* para escolher uma opção.\n` +
+                `Ou digite *menu* para voltar ao menu principal.`
+            );
+        }
+    } catch (err) {
+        console.error(`❌ Erro ao processar mensagem de ${chatId}:`, err.message);
+        await client.sendMessage(chatId, "⚠️ Ocorreu um erro interno. Tente novamente mais tarde.");
+    }
+});
+
+client.initialize();
